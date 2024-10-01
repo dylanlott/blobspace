@@ -1,5 +1,5 @@
 [package]
-name = "blobspace-analysis"
+name = "blobspace-analyzer"
 description = "Analyze blobspace data from Blobscan"
 version = "0.1.0"
 edition = "2021"
