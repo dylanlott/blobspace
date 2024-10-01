@@ -7,6 +7,6 @@ async fn main() {
     if result.is_err() {
         dbg!(result.err().unwrap());
     } else {
-        dbg!(result.unwrap());
+        dbg!(result);
     }
 }

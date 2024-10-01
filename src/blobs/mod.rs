@@ -1,66 +1,78 @@
-use eyre;
-use reqwest;
+use eyre::{eyre, Result};
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use serde_json;
 
-/// Analyzes blobspace data from Blobscan
 #[derive(Debug)]
 pub struct BlobAnalyzer {
-    client: reqwest::Client,
+    client: Client,
 }
 
-/// Blobscan's representation of a Blob
-
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct DataStorageReference {
-    blobStorage: String,
-    dataReference: String,
+    blob_storage: String,
+    data_reference: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct Transaction {
-    rollup: Option<String>,  // Optional field, as it's not always present
+    rollup: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct Blob {
     commitment: String,
     proof: String,
     size: u64,
-    versionedHash: String,
-    dataStorageReferences: Vec<DataStorageReference>,
+    versioned_hash: String,
+    data_storage_references: Vec<DataStorageReference>,
     index: u64,
-    txHash: String,
-    blockHash: String,
-    blockNumber: u64,
-    blockTimestamp: String,
+    tx_hash: String,
+    block_hash: String,
+    block_number: u64,
+    block_timestamp: String,
     transaction: Option<Transaction>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct ApiResponse {
     blobs: Vec<Blob>,
-    totalBlobs: u64,
+    total_blobs: u64,
 }
 
-
-/// Blobspace Analyzer
 impl BlobAnalyzer {
+    /// Creates a new instance of `BlobAnalyzer` with a default `reqwest::Client`.
     pub fn new() -> Self {
         BlobAnalyzer {
-            client: reqwest::Client::new(),
+            client: Client::new(),
         }
     }
 
-    /// Fetch the given block range of blobs
-    pub async fn query_blobs(&self) -> eyre::Result<ApiResponse> {
-        let url = format!( "https://api.blobscan.com/blobs?sort=desc&startBlock=0&type=canonical");
+    /// Queries blobs from the BlobScan API.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the HTTP request fails or if the JSON deserialization fails.
+    pub async fn query_blobs(&self) -> Result<ApiResponse> {
+        let url = "https://api.blobscan.com/blobs?sort=desc&startBlock=0&type=canonical";
+        
         let response = self.client.get(url).send().await?;
+        
+        // Check if the response status is successful
         if !response.status().is_success() {
-            dbg!(response.text().await?);
-            return Err(eyre::eyre!("Failed to fetch blobs"));
+            // Clone the response to read the text without consuming it
+            let status = response.status();
+            let error_text = response.text().await.unwrap_or_else(|_| "No error message".to_string());
+            dbg!(&error_text);
+            return Err(eyre!("Failed to fetch blobs: HTTP {}", status));
         }
+        
+        // Deserialize the JSON response directly into ApiResponse
         let blobs = serde_json::from_str::<ApiResponse>(&response.text().await?)?;
+
         Ok(blobs)
     }
 }
