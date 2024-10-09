@@ -1,12 +1,9 @@
-mod blobs;
-
+use blobspace_analyzer::blobs;
 #[tokio::main]
-async fn main() {
+async fn main() -> eyre::Result<()> {
     let analyzer = blobs::BlobAnalyzer::new();
-    let result = analyzer.query_blobs().await;
-    if result.is_err() {
-        dbg!(result.err().unwrap());
-    } else {
-        dbg!(result);
-    }
+    let blocks = analyzer.query_blocks().await?;
+    let stats = analyzer.stats(blocks).await?;
+    dbg!(stats);
+    Ok(())
 }
