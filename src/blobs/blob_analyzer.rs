@@ -87,6 +87,7 @@ impl BlobAnalyzer {
         for block in blocks.iter() {
             let block = block.clone();
             dbg!(block.number);
+            dbg!(block.hash);
 
             block.transactions.iter().for_each(|tx| {
                 let blob_count = tx.blobs.len() as u64;
@@ -100,6 +101,28 @@ impl BlobAnalyzer {
             block_map: HashMap::new(),
             rollup_map: HashMap::new(),
         })
+    }
+
+    /// Query details on a single block
+    pub async fn query_block(&self, block_numhash: String) -> Result<Block> {
+        let url = format!("https://api.blobscan.com/blocks/{}?type=canonical", block_numhash);
+        let response = self.client.get(url).send().await?;
+
+        if !response.status().is_success() {
+            // Clone the response to read the text without consuming it
+            let status = response.status();
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "No error message".to_string());
+
+            dbg!(&error_text);
+            return Err(eyre!("Failed to fetch block: HTTP {}", status));
+        }
+
+        let block_response = serde_json::from_str::<Block>(&response.text().await?)?;
+
+        Ok(block_response.clone())
     }
 }
 
