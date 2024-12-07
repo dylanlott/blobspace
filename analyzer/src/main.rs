@@ -5,7 +5,10 @@ async fn main() -> eyre::Result<()> {
     let blocks = analyzer.query_blocks().await?;
     let stats = analyzer.stats(blocks.clone()).await?;
     dbg!(stats);
-    let block_details = analyzer.query_block(blocks[0].hash.clone()).await?;
-    dbg!(block_details);
+    for block in blocks {
+        println!("{:?}", block);
+        let blob_data = analyzer.query_blobs(block.number, block.number).await?;
+        dbg!(blob_data);
+    }
     Ok(())
 }

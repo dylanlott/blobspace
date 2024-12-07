@@ -48,8 +48,8 @@ impl BlobAnalyzer {
     /// # Errors
     ///
     /// Returns an error if the HTTP request fails or if the JSON deserialization fails.
-    pub async fn query_blobs(&self) -> Result<ApiBlobResponse> {
-        let url = "https://api.blobscan.com/blobs?sort=desc&startBlock=0&type=canonical";
+    pub async fn query_blobs(&self, start_block: u64, end_block: u64) -> Result<ApiBlobResponse> {
+        let url = format!("https://api.blobscan.com/blobs?sort=desc&startBlock={}&endBlock={}&type=canonical", start_block, end_block);
         let response = self.client.get(url).send().await?;
 
         // Check if the response status is successful
@@ -64,9 +64,12 @@ impl BlobAnalyzer {
             return Err(eyre!("Failed to fetch blobs: HTTP {}", status));
         }
 
+        // dbg!(response.text().await?);
+
         // Deserialize the JSON response directly into ApiResponse
         let blobs = serde_json::from_str::<ApiBlobResponse>(&response.text().await?)?;
-
+        dbg!(&blobs);
+        
         Ok(blobs)
     }
 
