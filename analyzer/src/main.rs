@@ -1,4 +1,5 @@
-use blobspace_analyzer::blobs;
+use analyzer::blobs;
+
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
     let analyzer = blobs::BlobAnalyzer::new();

@@ -3,8 +3,16 @@ name = "indexer"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name="indexer"
+path = "src/bin/cli.rs"
 
 [dependencies]
-tokio = { version = "1", features = ["full"] }
-axum = "0.6"
-hyper = "0.14"
+tokio.workspace = true
+reth.workspace = true
+reth-node-api.workspace = true
+reth-node-ethereum.workspace = true
+reth-exex.workspace = true
+futures.workspace = true
+futures-util.workspace = true
+eyre.workspace = true
