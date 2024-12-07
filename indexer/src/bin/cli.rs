@@ -1,7 +1,8 @@
-use futures::{Future, TryStreamExt};
-use reth_exex::{ExExContext, ExExNotification};
-use reth_node_ethereum::EthereumNode;
+use futures::Future;
+use reth::{providers::TransactionsProvider, transaction_pool::TransactionPool};
+use reth_exex::ExExContext;
 use reth_node_api::FullNodeComponents;
+use reth_node_ethereum::EthereumNode;
 
 fn main() -> eyre::Result<()> {
     println!("indexer booting up");
@@ -16,25 +17,24 @@ fn main() -> eyre::Result<()> {
     })
 }
 
-async fn exex<Node: FullNodeComponents>(mut ctx: ExExContext<Node>) -> eyre::Result<()> {
+async fn exex<Node: FullNodeComponents>(ctx: ExExContext<Node>) -> eyre::Result<()> {
     println!("exex booting up");
-    while let Some(notification) = ctx.notifications.try_next().await? {
-        match &notification {
-            ExExNotification::ChainCommitted { new, .. } => {
-                println!("new tip committed to block {:?}", new.tip());
-            }
-            ExExNotification::ChainReorged { new, old } => {
-                println!(
-                    "Chain reorganized from block {:?} to {:?}",
-                    old.tip(),
-                    new.tip()
-                );
-            }
-            ExExNotification::ChainReverted { old, .. } => {
-                println!("Chain reverted to block {:?}", old.tip());
-            }
+
+    while let Some(sidecar) = ctx.pool().blob_transaction_sidecars_listener().recv().await {
+        // Transaction hash -- One index
+        let tx_hash = sidecar.tx_hash;
+        println!("tx hash: {:?}", tx_hash);
+        // Blob Sidecare -- One value
+        let blob_sidecar = sidecar.sidecar.clone();
+        println!("blob sidecar: {:?}", blob_sidecar);
+        // Block number
+        if let Some(tx_details) = ctx.provider().transaction_by_hash(tx_hash)? {
+            println!("tx details: {:?}", tx_details);
+        } else {
+            println!("tx not found");
         }
     }
+
     Ok(())
 }
 
