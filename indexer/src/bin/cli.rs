@@ -2,10 +2,8 @@ use futures::{Future, TryStreamExt};
 use reth_exex::{ExExContext, ExExNotification};
 use reth_node_ethereum::EthereumNode;
 use reth_node_api::FullNodeComponents;
-use tokio;
 
-#[tokio::main]
-async fn main() -> eyre::Result<()> {
+fn main() -> eyre::Result<()> {
     println!("indexer booting up");
     reth::cli::Cli::parse_args().run(|builder, _| async move {
         let handle = builder
@@ -19,6 +17,7 @@ async fn main() -> eyre::Result<()> {
 }
 
 async fn exex<Node: FullNodeComponents>(mut ctx: ExExContext<Node>) -> eyre::Result<()> {
+    println!("exex booting up");
     while let Some(notification) = ctx.notifications.try_next().await? {
         match &notification {
             ExExNotification::ChainCommitted { new, .. } => {
@@ -42,5 +41,6 @@ async fn exex<Node: FullNodeComponents>(mut ctx: ExExContext<Node>) -> eyre::Res
 async fn exex_init<Node: FullNodeComponents>(
     ctx: ExExContext<Node>,
 ) -> eyre::Result<impl Future<Output = eyre::Result<()>>> {
+    println!("initializing exex");
     Ok(exex(ctx))
 }
