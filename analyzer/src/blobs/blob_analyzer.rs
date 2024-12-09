@@ -49,7 +49,10 @@ impl BlobAnalyzer {
     ///
     /// Returns an error if the HTTP request fails or if the JSON deserialization fails.
     pub async fn query_blobs(&self, start_block: u64, end_block: u64) -> Result<ApiBlobResponse> {
-        let url = format!("https://api.blobscan.com/blobs?sort=desc&startBlock={}&endBlock={}&type=canonical", start_block, end_block);
+        let url = format!(
+            "https://api.blobscan.com/blobs?sort=desc&startBlock={}&endBlock={}&type=canonical",
+            start_block, end_block
+        );
         let response = self.client.get(url).send().await?;
 
         // Check if the response status is successful
@@ -69,7 +72,7 @@ impl BlobAnalyzer {
         // Deserialize the JSON response directly into ApiResponse
         let blobs = serde_json::from_str::<ApiBlobResponse>(&response.text().await?)?;
         dbg!(&blobs);
-        
+
         Ok(blobs)
     }
 
@@ -108,7 +111,10 @@ impl BlobAnalyzer {
 
     /// Query details on a single block
     pub async fn query_block(&self, block_numhash: String) -> Result<Block> {
-        let url = format!("https://api.blobscan.com/blocks/{}?type=canonical", block_numhash);
+        let url = format!(
+            "https://api.blobscan.com/blocks/{}?type=canonical",
+            block_numhash
+        );
         let response = self.client.get(url).send().await?;
 
         if !response.status().is_success() {

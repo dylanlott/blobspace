@@ -1,5 +1,5 @@
-use futures::Future;
-use reth::{providers::TransactionsProvider, transaction_pool::TransactionPool};
+use futures::{Future, TryStreamExt};
+use reth::core::primitives::Transaction;
 use reth_exex::ExExContext;
 use reth_node_api::FullNodeComponents;
 use reth_node_ethereum::EthereumNode;
@@ -17,25 +17,43 @@ fn main() -> eyre::Result<()> {
     })
 }
 
-async fn exex<Node: FullNodeComponents>(ctx: ExExContext<Node>) -> eyre::Result<()> {
+async fn exex<Node: FullNodeComponents>(mut ctx: ExExContext<Node>) -> eyre::Result<()> {
     println!("exex booting up");
 
-    while let Some(sidecar) = ctx.pool().blob_transaction_sidecars_listener().recv().await {
-        // Transaction hash -- One index
-        let tx_hash = sidecar.tx_hash;
-        println!("tx hash: {:?}", tx_hash);
-        // Blob Sidecare -- One value
-        let blob_sidecar = sidecar.sidecar.clone();
-        println!("blob sidecar: {:?}", blob_sidecar);
-        // Block number
-        if let Some(tx_details) = ctx.provider().transaction_by_hash(tx_hash)? {
-            println!("tx details: {:?}", tx_details);
-        } else {
-            println!("tx not found");
-        }
-    }
+    // TODO: Track a "latest indexed block" and set the head to that number to be restart-tolerant
+    ctx.set_notifications_without_head();
+    handle_notifications(ctx).await?;
 
     Ok(())
+}
+
+async fn handle_notifications<Node: FullNodeComponents>(
+    mut ctx: ExExContext<Node>,
+) -> eyre::Result<()> {
+    Ok(loop {
+        let result = ctx.notifications.try_next().await?;
+        match result {
+            Some(notification) => match notification {
+                reth_exex::ExExNotification::ChainCommitted { new } => {
+                    new.blocks_iter().for_each(move |block| {
+                        for tx in block.transactions() {
+                            tx.clone().is_eip4844().then(|| {
+                                println!("found 4844 tx: {:?}", tx);
+                                // TODO: Send off to the indexer
+                            });
+                        }
+                    });
+                    println!("chain committed: {:?}", new);
+                }
+                reth_exex::ExExNotification::ChainReorged { old, new } => {
+                    println!("chain reorged: {:?}, {:?}", old, new);
+                    todo!()
+                }
+                reth_exex::ExExNotification::ChainReverted { old } => todo!(),
+            },
+            None => continue,
+        }
+    })
 }
 
 async fn exex_init<Node: FullNodeComponents>(
