@@ -30,7 +30,7 @@ async fn exex<Node: FullNodeComponents>(mut ctx: ExExContext<Node>) -> eyre::Res
 async fn handle_notifications<Node: FullNodeComponents>(
     mut ctx: ExExContext<Node>,
 ) -> eyre::Result<()> {
-    Ok(loop {
+    loop {
         let result = ctx.notifications.try_next().await?;
         match result {
             Some(notification) => match notification {
@@ -47,13 +47,14 @@ async fn handle_notifications<Node: FullNodeComponents>(
                 }
                 reth_exex::ExExNotification::ChainReorged { old, new } => {
                     println!("chain reorged: {:?}, {:?}", old, new);
-                    todo!()
                 }
-                reth_exex::ExExNotification::ChainReverted { old } => todo!(),
+                reth_exex::ExExNotification::ChainReverted { old } => {
+                    println!("chain reverted: {:?}", old);
+                }
             },
             None => continue,
         }
-    })
+    }
 }
 
 async fn exex_init<Node: FullNodeComponents>(
